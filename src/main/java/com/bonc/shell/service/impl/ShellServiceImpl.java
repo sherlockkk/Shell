@@ -51,9 +51,21 @@ public class ShellServiceImpl implements ShellService {
       System.out.println(dateFormat.format(new Date()) + "开始执行shell脚本：" + Arrays.toString(shellArgs));
       process = Runtime.getRuntime().exec(command);
       if (process != null) {
-        Field handle = process.getClass().getDeclaredField("handle");
-        handle.setAccessible(true);
-        pid = handle.getLong(process);
+        switch (currentSystem) {
+          case 0:
+            Field handleWindows = process.getClass().getDeclaredField("handle");
+            handleWindows.setAccessible(true);
+            pid = handleWindows.getLong(process);
+            break;
+          case 1:
+            Field handleLinux = process.getClass().getDeclaredField("pid");
+            handleLinux.setAccessible(true);
+            pid = handleLinux.getLong(process);
+            break;
+          default:
+            break;
+        }
+
         System.out.println("进程号：" + pid);
         //为了防止阻塞，分别开单独线程去处理标准输出流和标准错误输出流
         new Thread(new StreamHandler(countDownLatch, process.getInputStream(), "STDOUT")).start();
@@ -66,6 +78,7 @@ public class ShellServiceImpl implements ShellService {
       System.out.println(dateFormat.format(new Date()) + "Shell命令执行完毕");
     } catch (Exception ioe) {
       System.out.println("执行Shell命令时发生异常：>>>" + ioe.getMessage());
+      ioe.printStackTrace();
     }
     return pid;
   }
